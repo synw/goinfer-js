@@ -6,7 +6,7 @@ Javascript api for the [Goinfer](https://github.com/synw/goinfer) inference serv
 
 :books: [Api Doc](https://synw.github.io/goinfer-js/api/index.html)
 
-Below is a basic AI generated documentation (using Mistral 7B Instruct):
+*Below is a basic AI generated documentation (using Mistral 7B Instruct):*
 
 The Goinfer API is a library that provides a simple and easy-to-use interface for interacting with a Goinfer server
 

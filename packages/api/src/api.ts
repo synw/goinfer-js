@@ -7,6 +7,9 @@ const useGoinfer = (initParams: GoinferParams) => {
   let isStreaming = false;
   let isModelLoaded = false;
   let abortController = new AbortController();
+  let onToken = initParams.onToken;
+  let onStartEmit = initParams.onStartEmit;
+  let onError = initParams.onError;
   // options
   const api = useApi({
     serverUrl: initParams.serverUrl,
@@ -45,22 +48,22 @@ const useGoinfer = (initParams: GoinferParams) => {
           data: payload["data"] ?? {},
         }
         if (msg.type == "token") {
-          if (initParams.onToken) {
-            initParams.onToken(msg.content);
+          if (onToken) {
+            onToken(msg.content);
           }
         } else {
           if (msg.type == "system") {
             if (msg.content == "start_emitting") {
               isStreaming = true;
-              if (initParams.onStartEmit) {
-                initParams.onStartEmit(msg.data as TempInferStats)
+              if (onStartEmit) {
+                onStartEmit(msg.data as TempInferStats)
               }
             } else if (msg.content == "result") {
               respData = msg.data as InferResult;
             }
           } else if (msg.type == "error") {
-            if (initParams.onError) {
-              initParams.onError(msg.content)
+            if (onError) {
+              onError(msg.content)
             } else {
               throw new Error(msg.content)
             }
@@ -116,7 +119,7 @@ const useGoinfer = (initParams: GoinferParams) => {
     throw new Error("Error loading tasks")
   }
 
-  async function loadTask(path: string) {
+  async function loadTask(path: string): Promise<Task> {
     const payload = {
       path: path
     }
@@ -177,22 +180,27 @@ const useGoinfer = (initParams: GoinferParams) => {
 
   return {
     /**
+     * Get the Restmix api object
+     * @returns {ReturnType<typeof useApi>}
+     */
+    get api(): ReturnType<typeof useApi> { return api },
+    /**
      * Indicates whether an inference is currently running.
      * @returns {boolean} `true` if an inference is currently running; otherwise, `false`.
      */
-    get isRunning() { return isRunning },
+    get isRunning(): boolean { return isRunning },
 
     /**
      * Indicates whether the inference process is streaming the results.
      * @returns {boolean} `true` if the inference results are being streamed; otherwise, `false`.
      */
-    get isStreaming() { return isStreaming },
+    get isStreaming(): boolean { return isStreaming },
 
     /**
      * Indicates whether a model is currently loaded and ready for inferences.
      * @returns {boolean} `true` if a model is currently loaded; otherwise, `false`.
      */
-    get isModelLoaded() { return isModelLoaded },
+    get isModelLoaded(): boolean { return isModelLoaded },
 
     /**
      * Performs an inference using the provided parameters.
@@ -214,6 +222,14 @@ const useGoinfer = (initParams: GoinferParams) => {
      * console.log(result.text);
      * ```
      */
+    /**  
+     * Function to perform when a token is received
+     * 
+     * @param {string} token: the new token
+    */
+    onToken,
+    onError,
+    onStartEmit,
     infer,
 
     /**
