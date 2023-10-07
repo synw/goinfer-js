@@ -48,7 +48,6 @@
     "name": "Goinfer js documentation",
     "readme": "none",
     "entryPoints": [
-      "src/interfaces.ts",
       "src/api.ts"
     ],
     "out": "../../docs/api",

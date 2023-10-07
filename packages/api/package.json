@@ -1,6 +1,6 @@
 {
   "name": "@goinfer/api",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Api for the Goinfer inference server",
   "repository": "https://github.com/synw/goinfer-js",
   "scripts": {
@@ -12,6 +12,7 @@
     "restmix": "^0.3.0"
   },
   "devDependencies": {
+    "@goinfer/types": "^0.1.0",
     "@rollup/plugin-node-resolve": "^13.3.0",
     "@rollup/plugin-typescript": "^8.5.0",
     "@types/expect": "^24.3.0",

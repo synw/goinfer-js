@@ -1,5 +1,5 @@
 import { useApi } from "restmix";
-import type { InferParams, InferResult, ModelConf, StreamedMessage, Task, ModelState, GoinferParams, TempInferStats } from "./interfaces";
+import type { InferParams, InferResult, ModelConf, StreamedMessage, Task, ModelState, GoinferParams, TempInferStats } from "@goinfer/types";
 
 /** The main api composable */
 const useGoinfer = (initParams: GoinferParams) => {
