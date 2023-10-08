@@ -6,10 +6,13 @@ const useGoinfer = (initParams: GoinferParams) => {
   let isRunning = false;
   let isStreaming = false;
   let isModelLoaded = false;
+  let isLoadingModel = false;
   let abortController = new AbortController();
+  let model: ModelConf = { name: "", ctx: 2048 };
   let onToken = initParams.onToken;
   let onStartEmit = initParams.onStartEmit;
   let onError = initParams.onError;
+
   // options
   const api = useApi({
     serverUrl: initParams.serverUrl,
@@ -25,6 +28,9 @@ const useGoinfer = (initParams: GoinferParams) => {
       ...params,
     };
     const inferenceParams = { ...paramDefaults };
+    if (inferenceParams?.model) {
+      model = inferenceParams.model;
+    }
     //console.log("Params", inferenceParams);
     let respData: InferResult = {
       text: "",
@@ -48,6 +54,7 @@ const useGoinfer = (initParams: GoinferParams) => {
           data: payload["data"] ?? {},
         }
         if (msg.type == "token") {
+          //console.log("TOKEN", msg.content, onToken);
           if (onToken) {
             onToken(msg.content);
           }
@@ -94,10 +101,14 @@ const useGoinfer = (initParams: GoinferParams) => {
   }
 
   async function abort() {
-    const res = await api.get("/completion/abort");
-    if (res.ok) {
-      isRunning = false;
-      isStreaming = false;
+    if (isStreaming) {
+      abortController.abort();
+    } else {
+      const res = await api.get("/completion/abort");
+      if (res.ok) {
+        isRunning = false;
+        isStreaming = false;
+      }
     }
   }
 
@@ -105,7 +116,11 @@ const useGoinfer = (initParams: GoinferParams) => {
     const res = await api.get<ModelState>("/model/state");
     //console.log(JSON.stringify(res.data, null, "  "))
     if (res.ok) {
-      return res.data as ModelState
+      if (res.data.isModelLoaded) {
+        isModelLoaded = true;
+        model = { name: res.data.loadedModel, ctx: res.data.ctx };
+      }
+      return res.data
     }
     throw new Error("Error loading models state")
   }
@@ -161,8 +176,12 @@ const useGoinfer = (initParams: GoinferParams) => {
   }
 
   async function loadModel(modelConf: ModelConf): Promise<void> {
+    isModelLoaded = false;
+    isLoadingModel = true;
     const res = await api.post<{ error: string }>("/model/load", modelConf);
     if (res.ok) {
+      model = modelConf;
+      isLoadingModel = false;
       isModelLoaded = true;
       return
     }
@@ -173,6 +192,7 @@ const useGoinfer = (initParams: GoinferParams) => {
     const res = await api.get("/model/unload");
     if (res.ok) {
       isModelLoaded = false;
+      model = { name: "", ctx: 2048 };
       return
     }
     throw new Error("Error unloading model")
@@ -203,6 +223,18 @@ const useGoinfer = (initParams: GoinferParams) => {
     get isModelLoaded(): boolean { return isModelLoaded },
 
     /**
+     * Indicates whether a model is currently loading
+     * @returns {boolean} `true` if a model is currently loading; otherwise, `false`.
+     */
+    get isLoadingModel(): boolean { return isLoadingModel },
+
+    get model(): ModelConf { return model },
+
+    set onToken(t: ((t: string) => void) | undefined) { onToken = t },
+    set onError(t: ((t: string) => void) | undefined) { onError = t },
+    set onStartEmit(t: ((s: TempInferStats) => void) | undefined) { onStartEmit = t },
+
+    /**
      * Performs an inference using the provided parameters.
      * 
      * @param {string} _prompt - The input string for which the inference is to be generated.
@@ -227,9 +259,6 @@ const useGoinfer = (initParams: GoinferParams) => {
      * 
      * @param {string} token: the new token
     */
-    onToken,
-    onError,
-    onStartEmit,
     infer,
 
     /**
@@ -284,7 +313,7 @@ const useGoinfer = (initParams: GoinferParams) => {
      * 
      * ```ts
      * const state = await modelsState();
-     * console.log(state.loadedModel);
+     * console.log(loadedModel);
      * ```
      */
     modelsState,
