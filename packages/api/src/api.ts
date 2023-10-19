@@ -180,6 +180,10 @@ const useGoinfer = (initParams: GoinferParams) => {
     isLoadingModel = true;
     const res = await api.post<{ error: string }>("/model/load", modelConf);
     if (res.ok) {
+      if (res.status == 202) {
+        // model is already loaded
+        throw new Error(res.data.error)
+      }
       model = modelConf;
       isLoadingModel = false;
       isModelLoaded = true;

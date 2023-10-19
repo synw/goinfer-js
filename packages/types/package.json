@@ -1,6 +1,6 @@
 {
   "name": "@goinfer/types",
-  "version": "0.1.0",
+  "version": "0.3.1",
   "description": "Shared data types for Goinfer js",
   "repository": "https://github.com/synw/goinfer-js",
   "scripts": {

@@ -100,14 +100,12 @@ interface InferParams {
  * @interface ModelConf
  * @property {string} name - The name of the model.
  * @property {number} ctx - The context value.
- * @property {number | undefined} [rope_freq_scale] - The rope frequency scale (optional).
- * @property {number | undefined} [rope_freq_base] - The rope frequency base (optional).
+ * @property {number | undefined} gpu_layers - The number of layers to offload to the GPU.
  */
 interface ModelConf {
   name: string,
   ctx: number,
-  rope_freq_scale?: number,
-  rope_freq_base?: number,
+  gpu_layers?: number;
 }
 
 
