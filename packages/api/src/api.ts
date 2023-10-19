@@ -1,12 +1,16 @@
 import { useApi } from "restmix";
+import { reactive } from "@vue/reactivity";
 import type { InferParams, InferResult, ModelConf, StreamedMessage, Task, ModelState, GoinferParams, TempInferStats } from "@goinfer/types";
+import type { ApiState } from "./interfaces.js";
 
 /** The main api composable */
 const useGoinfer = (initParams: GoinferParams) => {
-  let isRunning = false;
-  let isStreaming = false;
-  let isModelLoaded = false;
-  let isLoadingModel = false;
+  const state = reactive<ApiState>({
+    isRunning: false,
+    isStreaming: false,
+    isModelLoaded: false,
+    isLoadingModel: false,
+  })
   let abortController = new AbortController();
   let model: ModelConf = { name: "", ctx: 2048 };
   let onToken = initParams.onToken;
@@ -20,7 +24,7 @@ const useGoinfer = (initParams: GoinferParams) => {
   api.addHeader("Authorization", `Bearer ${initParams.apiKey}`);
 
   const infer = async (prompt: string, template?: string, params?: InferParams): Promise<InferResult> => {
-    isRunning = true;
+    state.isRunning = true;
     abortController = new AbortController();
     const paramDefaults = {
       prompt: prompt,
@@ -47,6 +51,7 @@ const useGoinfer = (initParams: GoinferParams) => {
 
     if (inferenceParams?.stream == true) {
       const _onChunk = (payload: Record<string, any>) => {
+        console.log("PAYLOAD", payload)
         const msg: StreamedMessage = {
           num: payload["num"],
           type: payload["msg_type"],
@@ -61,7 +66,7 @@ const useGoinfer = (initParams: GoinferParams) => {
         } else {
           if (msg.type == "system") {
             if (msg.content == "start_emitting") {
-              isStreaming = true;
+              state.isStreaming = true;
               if (onStartEmit) {
                 onStartEmit(msg.data as TempInferStats)
               }
@@ -95,19 +100,19 @@ const useGoinfer = (initParams: GoinferParams) => {
       }
     }
 
-    isStreaming = false;
-    isRunning = false;
+    state.isStreaming = false;
+    state.isRunning = false;
     return respData
   }
 
   async function abort() {
-    if (isStreaming) {
+    if (state.isStreaming) {
       abortController.abort();
     } else {
       const res = await api.get("/completion/abort");
       if (res.ok) {
-        isRunning = false;
-        isStreaming = false;
+        state.isRunning = false;
+        state.isStreaming = false;
       }
     }
   }
@@ -117,7 +122,7 @@ const useGoinfer = (initParams: GoinferParams) => {
     //console.log(JSON.stringify(res.data, null, "  "))
     if (res.ok) {
       if (res.data.isModelLoaded) {
-        isModelLoaded = true;
+        state.isModelLoaded = true;
         model = { name: res.data.loadedModel, ctx: res.data.ctx };
       }
       return res.data
@@ -176,8 +181,8 @@ const useGoinfer = (initParams: GoinferParams) => {
   }
 
   async function loadModel(modelConf: ModelConf): Promise<void> {
-    isModelLoaded = false;
-    isLoadingModel = true;
+    state.isModelLoaded = false;
+    state.isLoadingModel = true;
     const res = await api.post<{ error: string }>("/model/load", modelConf);
     if (res.ok) {
       if (res.status == 202) {
@@ -185,8 +190,8 @@ const useGoinfer = (initParams: GoinferParams) => {
         throw new Error(res.data.error)
       }
       model = modelConf;
-      isLoadingModel = false;
-      isModelLoaded = true;
+      state.isLoadingModel = false;
+      state.isModelLoaded = true;
       return
     }
     throw new Error(res.data.error)
@@ -195,7 +200,7 @@ const useGoinfer = (initParams: GoinferParams) => {
   async function unloadModel(): Promise<void> {
     const res = await api.get("/model/unload");
     if (res.ok) {
-      isModelLoaded = false;
+      state.isModelLoaded = false;
       model = { name: "", ctx: 2048 };
       return
     }
@@ -209,34 +214,27 @@ const useGoinfer = (initParams: GoinferParams) => {
      */
     get api(): ReturnType<typeof useApi> { return api },
     /**
-     * Indicates whether an inference is currently running.
-     * @returns {boolean} `true` if an inference is currently running; otherwise, `false`.
+     * Get the model conf
+     * @returns {ModelConf}
      */
-    get isRunning(): boolean { return isRunning },
-
-    /**
-     * Indicates whether the inference process is streaming the results.
-     * @returns {boolean} `true` if the inference results are being streamed; otherwise, `false`.
-     */
-    get isStreaming(): boolean { return isStreaming },
-
-    /**
-     * Indicates whether a model is currently loaded and ready for inferences.
-     * @returns {boolean} `true` if a model is currently loaded; otherwise, `false`.
-     */
-    get isModelLoaded(): boolean { return isModelLoaded },
-
-    /**
-     * Indicates whether a model is currently loading
-     * @returns {boolean} `true` if a model is currently loading; otherwise, `false`.
-     */
-    get isLoadingModel(): boolean { return isLoadingModel },
-
     get model(): ModelConf { return model },
 
     set onToken(t: ((t: string) => void) | undefined) { onToken = t },
     set onError(t: ((t: string) => void) | undefined) { onError = t },
     set onStartEmit(t: ((s: TempInferStats) => void) | undefined) { onStartEmit = t },
+
+
+    /** 
+     * The reactive state
+     * 
+     * reactive({
+     *  isRunning: false,
+     *  isStreaming: false,
+     *  isModelLoaded: false,
+     *  isLoadingModel: false,
+     * })
+     */
+    state: state,
 
     /**
      * Performs an inference using the provided parameters.
