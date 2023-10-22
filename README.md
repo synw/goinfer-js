@@ -1,5 +1,7 @@
 # Goinfer packages
 
+## Discontinued: this code moved to the [LocalLm](https://github.com/synw/locallm) project
+
 Javascript packages to use with the [Goinfer](https://github.com/synw/goinfer) inference server
 
 | Version | Name | Description | Doc
